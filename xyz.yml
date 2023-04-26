@@ -1,0 +1,21 @@
+- name: testing script
+  hosts: localhost
+  tasks: 
+    - name: Copy cpuutil files to vm 
+      copy:
+        src: "cpuutil.sh"
+        dest: /tmp/cpuutil.sh
+        mode: u+rwx,g-rwx,o-rwx
+      with_items:
+         - "/home/ansible/fundamentals/cpuutil.sh"
+      delegate_to: "192.168.0.61"
+
+    - name: executing powershell script
+      shell: /tmp/cpuutil.sh
+      delegate_to: "192.168.0.61"
+      register: passwordoutput
+
+    - name: Print
+      debug:
+        var: passwordoutput
+    - meta: end_play

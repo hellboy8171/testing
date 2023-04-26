@@ -1,0 +1,98 @@
+---
+- name: Fetch the dev incidents
+  uri:
+      url: "{{ snow_url }}"
+      url_username: admin
+      url_password: vDfv*8+eL7KQ
+      method: GET
+      force_basic_auth: true
+      validate_certs: false
+      force: true
+      return_content: true
+      use_proxy: false
+      status_code: 200
+      follow_redirects: all
+      body_format: json
+      timeout: 30
+  register: INCs
+- debug:
+    msg: "{{ INCs }}"
+- name: Set the short_description
+  set_fact:
+     short_description: "{{ INCs.json.result[0].short_description }}"
+     sys_id: "{{ INCs.json.result[0].sys_id }}"
+    
+- name: show message
+  debug:
+    msg: "{{ short_description }}"
+
+- name: show message
+  debug:
+    msg: "{{ sys_id }}"
+
+- name: fetch the incident
+  set_fact:
+    snow_url: "https://dev165365.service-now.com/api/now/v2/table/incident/{{ sys_id }}"
+
+- name: show message
+  debug:
+    msg: "{{ snow_url }}"
+
+- name: fetching incident
+  uri:
+        url: "{{ snow_url }}"
+        url_username: admin
+        url_password: vDfv*8+eL7KQ
+        method: GET
+        force_basic_auth: true
+        validate_certs: true
+        force: true
+        return_content: true
+        use_proxy: false
+        status_code: 200
+        body_format: json
+  register: INCs
+
+- debug:
+    msg: "{{ INCs }}"
+
+- name: set the description
+  set_fact:
+      description: "{{ INCs.json.result[0].description }}"
+
+- name: show message
+  debug:
+      msg: "{{ description }}"
+
+- name:  filter Ip address
+  set_fact:
+      ipss: "{{ description | regex_findall('(?<!\\d)(?:\\d{1,3}\\.){3}\\d{1,3}(?!\\d)')   }}" 
+  register: result
+
+- name: Concatenate a list to string
+  set_fact:
+        ips: "{{ ipss | join(',') }}"
+
+- debug:
+    msg: "{{ ips }}"
+
+- name: Copy cpuutil files to vm 
+  copy:
+    src: "cpuutil.sh"
+    dest: /tmp/cpuutil.sh
+  with_items:
+     - "cpuutil.sh"
+  delegate_to: "{{ ips }}"
+
+- name: executing powershell script
+  shell: /tmp/cpuutil.sh
+  delegate_to: "{{ ips }}"
+  register: passwordoutput
+
+- name: Print
+  debug:
+   var: passwordoutput
+- meta: end_play
+
+
+       

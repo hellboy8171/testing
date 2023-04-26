@@ -1,0 +1,80 @@
+---
+- name: Task to fetch cpu util 
+  hosts: localhost
+  gather_facts: true
+  tasks:
+    - name: fetch the incident
+      vars:
+        # snow_url: 'https://dev144990.service-now.com/api/now/table/incident'
+        sys_id: "{{ sys_id }}"
+        snow_url: "https://husqdev.service-now.com/api/now/v2/table/incident/{{ sys_id }}"
+
+    - name: incidents
+      uri:
+        url: "{{ snow_url }}"
+        # url: https://dev144990.service-now.com/api/now/table/incident
+        ##user: "{{ snow['admin']['username'] }}"
+        #password: "{{ snow['admin']['password'] }}"
+        user: H626338
+        password: Ansible@123
+        method: GET
+        #body: "{'short_description':'hostname:10.46.16.15'}"
+        force_basic_auth: true
+        validate_certs: true
+        force: true
+        return_content: true
+        use_proxy: false
+        status_code: 200
+        body_format: json
+      register: INCs
+
+    - debug:
+        msg: "{{ INCs }}"
+
+    - name: set the description
+      set_fact:
+        description: "{{ INCs.json.result[0].description }}"
+
+    - name: show message
+      debug:
+        msg: "{{ description }}"
+        #when: description is cpu
+    - name: set the short
+      set_fact:
+        short: "{% if description=='Hostname' %}s{% else %}p{% endif %}"
+
+    - name: condition
+      command: sudo ansible-playbook cpuutil.yml -i inventory -u svc-automation --ask-pass
+      register: contents
+      when: 'contents.stdout == "hostname"'
+
+    - name: shoe contents
+      debug:
+        msg: "{{ contents }}"
+
+    - name: Copy cpuutil files to vm
+      win_copy:
+        src: "{{ item }}"
+        dest: C:\Windows\
+      with_items:
+        - "/home/ansible_svc_lin/storage/cpuutil.ps1"
+
+    - name: executing powershell script
+      win_command: powershell.exe
+      args:
+        stdin: "C:\\Windows\\cpuutil.ps1"
+      become_user: Administrator
+      register: passwordoutput
+
+    - name: Print
+      debug:
+        var : passwordoutput
+
+    - name: Run only if the task that registered the "passwordoutput" variable fails
+      ansible.builtin.command: sudo ansible-playbook update_when_failed.yml
+
+    - name: Run only if the task that registered the "passwordoutput" variable succeeds
+      ansible.builtin.command: sudo ansible-playbook update_when_success.yml
+      when: passwordoutput is succeeded
+
+    

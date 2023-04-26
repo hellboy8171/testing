@@ -1,0 +1,46 @@
+---
+- name: Fetch incident details
+  hosts: localhost
+  gather_facts: no
+  tasks:
+  - name: Fetch the dev incidents
+    uri:
+       url: 'https://husqdev.service-now.com/api/now/table/incident?sysparm_query=assignment_groupLIKEAnsible%20Automation'
+       user: H626338
+       password: Ansible@123
+       method: GET
+       orce_basic_auth: true
+       validate_certs: false
+       force: true
+       return_content: true
+       use_proxy: false
+       status_code: 200
+       follow_redirects: all
+       body_format: json
+       timeout: 30
+    register: INCs
+  - debug:
+      msg: "{{ INCs }}"
+  - name: Set the short_description
+    set_fact:
+        short_description: "{{ INCs.json.result[0].short_description }}"
+
+  - name: show message
+    debug:
+       msg: "{{ short_description }}"
+       #when: short_description is cpu
+  - name: Set the short
+    set_fact:
+       short: "{% if short_description=='CPU' %}s{% else %}p{% endif %}"
+       
+  - name: condition 
+    command: sudo ansible-playbook cpuutil.yml -i inventory -u svc-automation --ask-pass
+    register: list
+    when: short_description  == 'CPU utilization above threshold.'
+
+  - name: show list
+    debug:
+       msg: "{{ list }}"
+
+       
+

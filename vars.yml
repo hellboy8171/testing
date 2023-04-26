@@ -1,0 +1,5 @@
+snow_url: https://dev165365.service-now.com/api/now/table/incident?sysparm_query=short_descriptionLIKECPU+utilisation+check
+psFile: task.ps1
+remoteDest: C:\rajat\
+resultFile: C:\rajat\result.txt
+localDest: /home/ansible/fundamentals/roles/memoryUtilization/files/ 
